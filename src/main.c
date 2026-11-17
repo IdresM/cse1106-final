@@ -1,25 +1,46 @@
 #include <stdio.h>
 #include <math.h>
-#include<string>
-#define READING_COUNT 5
+#include<stdlib.h>
 
-double calculateAverage(double readings[], int count) {
+int minimumTemp = 68;
+int maximumTemp = 76;
+
+int calculateAverage(int* readings, int count) {
     double total = 0;
-    for (int i = 0; i < count; i++) total += readings[i];
+    for (int i = 0; i < count; i++) {
+        total += readings[i];
+    }
     return total / count;
 }
-void displayReadings(double readings[], int count) {
-    printf("Temperature Readings:\n");
-    for (int i = 0; i < count; i++) printf("%.1f F\n", readings[i]);
-}
-int isOutOfRange(double temperature) {
-    return (temperature > 76 || temperature < 68) ? 1 : 0;
-}
-void checkReadings(double readings[], int count) {
-    printf("\nReadings requiring attention:\n");
+
+void displayReadings(int readings[], int count) {
+    printf("Temperature System Status Warning LED\n");
     for (int i = 0; i < count; i++) {
-    if (isOutOfRange(readings[i])) printf("%.1f F\n", readings[i]);
+        printf("%9d F", readings[i]);
+        if(isOutOfRange(readings[i])){
+            printf(" WARNING       ");
+        }
+        else{
+            printf(" NORMAL        ");
+       }
+       if(isOutOfRange(readings[i])) { printf("ON\n");}
+       else{printf("OFF\n");}
+    }
 }
+
+int* user_input(unsigned int n) {
+    int* input_ptr = (int*) calloc(n, sizeof(int));
+    if (input_ptr == NULL) {
+        return NULL;
+    }
+
+    for(int i = 0; i < n; i++){
+        scanf("%d", input_ptr + i);
+    }
+    return input_ptr;
+}
+int isOutOfRange(int temperature) {
+    return (temperature > maximumTemp || temperature < minimumTemp) ? 1 : 0;
 }
 
 void test_T1_normalTemperature(void) {
@@ -45,13 +66,16 @@ int main(void) {
     printf("========================================\n\n");
     printf("How many temperature readings you want to enter?\n");
     
-    unsigned int num;
-    fgets(num, sizeof(num), stdin);
+    
+    int num;
+    scanf("%d", &num);
 
-    displayReadings(readings, READING_COUNT);
-    printf("\nAverage temperature: %.1f F\n",
-    calculateAverage(readings, READING_COUNT));
+    int* tempInput = user_input(num);
+
+    displayReadings(user_input, num);
+    printf("\nAverage temperature: %d F\n", calculateAverage(tempInput, num));
     checkReadings(readings, READING_COUNT);
 
+    free(tempInput);
     return 0;
 }
