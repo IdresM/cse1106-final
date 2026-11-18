@@ -1,10 +1,22 @@
 #include <stdio.h>
 #include <math.h>
 #include<stdlib.h>
+#include <unistd.h>
+#include <pigpio.h>
+#define PIN 17
 
 int minimumTemp = 68;
 int maximumTemp = 76;
 
+void ledWarning(){
+   
+    gpioWrite(PIN, 1);
+    getchar();
+    gpioWrite(PIN,0);
+}
+int isOutOfRange(int temperature) {
+    return (temperature > maximumTemp || temperature < minimumTemp) ? 1 : 0;
+}
 int calculateAverage(int* readings, int count) {
     double total = 0;
     for (int i = 0; i < count; i++) {
@@ -13,7 +25,7 @@ int calculateAverage(int* readings, int count) {
     return total / count;
 }
 
-void displayReadings(int readings[], int count) {
+void displayReadings(int* readings, int count) {
     printf("Temperature System Status Warning LED\n");
     for (int i = 0; i < count; i++) {
         printf("%9d F", readings[i]);
@@ -23,59 +35,77 @@ void displayReadings(int readings[], int count) {
         else{
             printf(" NORMAL        ");
        }
-       if(isOutOfRange(readings[i])) { printf("ON\n");}
+       if(isOutOfRange(readings[i])) { printf("ON\n"); ledWarning();}
        else{printf("OFF\n");}
     }
 }
 
-int* user_input(unsigned int n) {
-    int* input_ptr = (int*) calloc(n, sizeof(int));
-    if (input_ptr == NULL) {
-        return NULL;
-    }
+void user_input(int n, int a[]) {
 
     for(int i = 0; i < n; i++){
-        scanf("%d", input_ptr + i);
+        printf("Enter the %d temperature: ", i+1);
+        scanf("%d", &a[i]);
     }
-    return input_ptr;
-}
-int isOutOfRange(int temperature) {
-    return (temperature > maximumTemp || temperature < minimumTemp) ? 1 : 0;
+    
+    return;
 }
 
-void test_T1_normalTemperature(void) {
+
+void storedata(int* temp, int count){
+    FILE* fp = fopen("temp_data.txt", "a");
+    for(int i = 0; i < count; i++){
+        fprintf( fp, "%d F ", temp[i]);
+        if(isOutOfRange(temp[i])){ fprintf(fp, "%s\n", "WARNING");}
+        else{fprintf(fp, "%s\n", "NORMAL");}
+    }
+    fclose(fp);
+}
+
+void changeAcceptedRange(){
+    int a;
+    int b;
+    scanf("Enter the new minimum temperature: %d\n", &a);
+    scanf("Enter the new maximum temperature: %d\n", &b);
+    minimumTemp = a;
+    maximumTemp = b;
+}
+
+/*void test_T1_normalTemperature(void) {
     double temperature = 75.0;
     recordTest("T1 - 75 F is within the acceptable range",
     isOutOfRange(temperature) == 0);
 }
-/* T2: 64 F is below the minimum and should require attention. */
+
 void test_T2_belowMinimum(void) {
     double temperature = 64.0;
     recordTest("T2 - 64 F requires attention",
     isOutOfRange(temperature) == 1);
 }
-/* T3: 78.5 F is above the maximum and should require attention. */
+
 void test_T3_aboveMaximum(void) {
     double temperature = 76.0;
     recordTest("T3 - 76 F requires attention",
     isOutOfRange(temperature) == 1);
-}
+}*/
+
 int main(void) {
     printf("========================================\n");
     printf("SMART CLASSROOM COMFORT MONITOR\n");
     printf("========================================\n\n");
     printf("How many temperature readings you want to enter?\n");
-    
+    gpioInitialise();
+    gpioSetMode(PIN, PI_OUTPUT);
     
     int num;
     scanf("%d", &num);
+    int a[num];
 
-    int* tempInput = user_input(num);
+    user_input(num, a);
 
-    displayReadings(user_input, num);
-    printf("\nAverage temperature: %d F\n", calculateAverage(tempInput, num));
-    checkReadings(readings, READING_COUNT);
+    displayReadings(a, num);
+    printf("\nAverage temperature: %d F\n", calculateAverage(a, num));
+    storedata(a, num);
+    changeAcceptedRange();
 
-    free(tempInput);
     return 0;
 }
